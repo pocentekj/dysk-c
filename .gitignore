@@ -1,0 +1,24 @@
+# Convention - ignore all files/directories starting with ".ignore."
+**/.ignore.*
+**/.ignore.*/
+**/.gitkeep
+!**/.gitkeep
+
+*.log
+.venv/
+venv/
+node_modules/
+
+# Auto-generated files
+/build/
+.cache/
+
+# Secrets/Settings
+.envrc
+
+# IDE & Editor Stuff
+.zed/
+Session.vim
+
+# AI Tools
+.aider*
