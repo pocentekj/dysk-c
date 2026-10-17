@@ -1,4 +1,4 @@
-CC := clang
+CC := gcc
 BUILDDIR := build
 
 .PHONY: all setup dev clean
