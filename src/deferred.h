@@ -20,7 +20,3 @@ static inline void free_str(char **str) {
     free(*str);
     *str = NULL;
 }
-
-typedef char *string;
-
-static inline void free_string(string *s) { free_str(s); }

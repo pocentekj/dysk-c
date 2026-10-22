@@ -5,4 +5,9 @@ project('example', 'c',
   ],
 )
 
-executable('example', 'src/main.c')
+executable('dsc',
+  sources: [
+    'src/main.c',
+    'src/strutil.c',
+  ],
+)

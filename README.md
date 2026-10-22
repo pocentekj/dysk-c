@@ -1,12 +1,8 @@
-# C Project Template
+# Dysk C
 
-This is a template for C project using Meson as build system with Ninja for backend.
+Because it all started with a C:\
 
-1. Copy this directory wherever you want.
-2. Edit `meson.build` and this `README.md`.
-3. Run `make` and enjoy!
-
-**Note:** It's worth to take a look at `Makefile`.
+Disk usage info - C implementation.
 
 ## License
 
