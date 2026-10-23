@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -41,12 +42,13 @@ string_array *string_array_new(void);
 void string_array_destroy(string_array **arr);
 
 static inline size_t string_array_len(const string_array *arr) {
+    assert(arr);
     return arr ? kv_size(arr->data) : 0;
 }
 
 /**
  * Read entire file on `path` line by line, and store lines in `out` string_array.
- * Returns `true` on success, `false` otherwise. Note, that this function will
- * fail for files larger than SIZE_MAX - 1 bytes.
+ * Returns `true` on success, `false` on error. `errno` may be set by underlying
+ * functions, such as `fopen`.
  */
 bool read_lines(string path, string_array *out);
