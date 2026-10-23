@@ -8,6 +8,7 @@ project('example', 'c',
 executable('dsc',
   sources: [
     'src/main.c',
+    'src/dysk_c.c',
     'src/strutil.c',
   ],
 )
