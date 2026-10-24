@@ -1,7 +1,7 @@
 CC := gcc
 BUILDDIR := build
 
-.PHONY: all setup dev check clean
+.PHONY: all setup format dev check clean
 
 all: dev
 
@@ -11,7 +11,10 @@ $(BUILDDIR)/build.ninja:
 setup:
 	CC="$(CC)" meson setup --reconfigure "$(BUILDDIR)"
 
-dev: $(BUILDDIR)/build.ninja
+format:
+	find . -type f \( -name '*.c' -o -name '*.h' \) -print0 | xargs -0 clang-format -i
+
+dev: check
 	meson compile -C "$(BUILDDIR)"
 
 check: $(BUILDDIR)/build.ninja

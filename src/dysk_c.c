@@ -5,8 +5,10 @@
 #include "strutil.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/statvfs.h>
 
 #include <klib/kvec.h>
 
@@ -17,7 +19,6 @@ int run(const string path) {
     check_ret(lines, EXIT_FAILURE, "Out of memory");
 
     check_ret(read_lines(path, lines), EXIT_FAILURE, "Failed to read data");
-    check_ret(string_array_len(lines) > 0, EXIT_FAILURE, "No entries");
     debug("%zu lines read.", string_array_len(lines));
 
     kvec_t(Entry *) entries;
@@ -26,9 +27,25 @@ int run(const string path) {
     foreach (lines->data) {
         const string line = string_array_at(lines, iter);
         parse_result r = Entry_from_line(line);
+
         if (!r.ok) {
             if (r.status == PARSE_IGNORE) continue;
-            log_err("Error processing line: %s", line);
+
+            switch (r.status) {
+            case PARSE_FORMAT:
+                log_err("Invalid format: %s", line);
+                break;
+            case PARSE_ENOMEM:
+                log_err("Out of memory");
+                break;
+            case PARSE_ERRVFS:
+                log_err("Cannot fetch statvfs: %s", line);
+                break;
+            default:
+                log_err("Error processing line: %s", line);
+                break;
+            }
+
             return EXIT_FAILURE;
         }
 
@@ -37,7 +54,9 @@ int run(const string path) {
 
     debug("%zu entries loaded", kv_size(entries));
 
-    foreach (entries) Entry_destroy(&(kv_A(entries, iter)));
+    foreach (entries) {
+        Entry_destroy(&(kv_A(entries, iter)));
+    }
     kv_destroy(entries);
 
     return EXIT_SUCCESS;
@@ -75,16 +94,18 @@ parse_result Entry_from_line(const string line) {
 
     Entry *e = calloc(1, sizeof *e);
     if (!e) {
-        r.status = PARSE_NOMEM;
+        r.status = PARSE_ENOMEM;
         return r;
     }
 
     string_array *tokens = parse_line(line);
     if (!tokens) {
-        r.status = PARSE_ERROR;
+        r.status = PARSE_FORMAT;
         goto error;
     }
 
+    // Filter out only physical devices - note that it's not really reliable
+    // method, but it works for me now, so I'll just leave it.
     if (!starts_with(string_array_at(tokens, 0), "/dev")) {
         r.status = PARSE_IGNORE;
         goto error;
@@ -92,15 +113,26 @@ parse_result Entry_from_line(const string line) {
 
     e->dev = strdup(string_array_at(tokens, 0));
     e->mp = strdup(string_array_at(tokens, 1));
-    if (!e->dev || !e->mp) {
-        r.status = PARSE_NOMEM;
+    e->fs = strdup(string_array_at(tokens, 2));
+    if (!e->dev || !e->mp || !e->fs) {
+        r.status = PARSE_ENOMEM;
         goto error;
     }
-    r.entry = e;
 
-    string_array_destroy(&tokens);
+    struct statvfs vfs;
+    if (statvfs(e->mp, &vfs) == -1) {
+        r.status = PARSE_ERRVFS;
+        goto error;
+    }
+
+    e->total = (uint64_t)vfs.f_blocks * (uint64_t)vfs.f_frsize;
+    e->avail = (uint64_t)vfs.f_bfree * (uint64_t)vfs.f_frsize;
+
+    r.entry = e;
     r.status = PARSE_SUCCESS;
     r.ok = true;
+
+    string_array_destroy(&tokens);
 
     return r;
 
@@ -115,6 +147,7 @@ void Entry_destroy(Entry **e) {
 
     if ((*e)->dev) free((*e)->dev);
     if ((*e)->mp) free((*e)->mp);
+    if ((*e)->fs) free((*e)->fs);
 
     free(*e);
     *e = NULL;

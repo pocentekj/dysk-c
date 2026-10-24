@@ -38,12 +38,14 @@ START_TEST(test_entry_from_line)
     ck_assert(r.ok);
     ck_assert(r.status == PARSE_SUCCESS);
     ck_assert_str_eq(r.entry->dev, "/dev/mapper/root");
+    ck_assert_str_eq(r.entry->mp, "/");
+    ck_assert_str_eq(r.entry->fs, "ext4");
     Entry_destroy(&(r.entry));
 
     deferred(free_string) string invalid_line = strdup("This is invalid");
     r = Entry_from_line(invalid_line);
     ck_assert(!r.ok);
-    ck_assert(r.status == PARSE_ERROR);
+    ck_assert(r.status == PARSE_FORMAT);
     ck_assert(r.entry == NULL);
 }
 END_TEST
