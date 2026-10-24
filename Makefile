@@ -21,4 +21,4 @@ check: $(BUILDDIR)/build.ninja
 	meson test -C "$(BUILDDIR)"
 
 clean:
-	rm -rf "$(BUILDDIR)"
+	rm -rf "$(BUILDDIR)" .cache

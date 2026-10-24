@@ -1,5 +1,9 @@
 #pragma once
 
+/**
+ * Inspired by macros from the book "Learn C The Hard Way" by Zed A. Shaw
+ */
+
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
