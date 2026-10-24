@@ -29,6 +29,7 @@ typedef struct {
 
 parse_result Entry_from_line(const string line);
 void Entry_destroy(Entry **e);
+void Entry_print_json(Entry *e);
 
 /**
  * Try to split line into tokens. Returns NULL on failure.

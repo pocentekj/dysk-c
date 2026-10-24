@@ -5,6 +5,7 @@
 #include "strutil.h"
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +20,7 @@ int run(const string path) {
     check_ret(lines, EXIT_FAILURE, "Out of memory");
 
     check_ret(read_lines(path, lines), EXIT_FAILURE, "Failed to read data");
-    debug("%zu lines read.", string_array_len(lines));
+    debug("%s: %zu lines", path, string_array_len(lines));
 
     kvec_t(Entry *) entries;
     kv_init(entries);
@@ -54,10 +55,15 @@ int run(const string path) {
 
     debug("%zu entries loaded", kv_size(entries));
 
+    printf("[");
     foreach (entries) {
-        Entry_destroy(&(kv_A(entries, iter)));
+        Entry *e = kv_A(entries, iter);
+        Entry_print_json(e);
+        Entry_destroy(&e);
+        if (iter + 1 < kv_size(entries)) printf(",");
     }
     kv_destroy(entries);
+    printf("]\n");
 
     return EXIT_SUCCESS;
 }
@@ -151,4 +157,12 @@ void Entry_destroy(Entry **e) {
 
     free(*e);
     *e = NULL;
+}
+
+void Entry_print_json(Entry *e) {
+    assert(e);
+
+    printf("{\"device\":\"%s\",\"mount_point\":\"%s\",\"file_system\":\"%s\","
+           "\"total\":%" PRIu64 ",\"available\":%" PRIu64 "}",
+           e->dev, e->mp, e->fs, e->total, e->avail);
 }
