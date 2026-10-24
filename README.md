@@ -2,7 +2,7 @@
 
 Because it all started with `C:\`
 
-Disk usage info for Linux, implemented in C. This started as a simple learning project and turned out to be genuinely useful along the way. It was inspired by [dysk](https://github.com/Canop/dysk). I decided to reimplement it in C for practice. Since everyone seems to be rewriting everything in Rust these days, I thought it would be kinda funny to rewrite a Rust program in C.
+Disk usage info for Linux, implemented in C. This started as a simple learning project and turned out to be actually useful along the way. It was inspired by [dysk](https://github.com/Canop/dysk). I decided to reimplement it in C for practice. Since everyone seems to be rewriting everything in Rust these days, I thought it would be kinda funny to rewrite a Rust program in C.
 
 ## No AI
 
