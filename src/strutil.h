@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <klib/kvec.h>
 
@@ -16,6 +17,11 @@ static inline void free_string(string *s) {
     free(*s);
     *s = NULL;
 }
+
+/**
+ * Check if `s` starts with `search`.
+ */
+bool starts_with(const string s, const string search);
 
 /**
  * Read entire file on `path` into string.
@@ -44,6 +50,11 @@ void string_array_destroy(string_array **arr);
 static inline size_t string_array_len(const string_array *arr) {
     assert(arr);
     return arr ? kv_size(arr->data) : 0;
+}
+
+static inline string string_array_at(const string_array *arr, size_t i) {
+    assert(arr);
+    return (arr && i < kv_size(arr->data)) ? kv_A(arr->data, i) : NULL;
 }
 
 /**

@@ -13,9 +13,7 @@ int main(int argc, char *argv[]) {
 
     const string path = (argc == 2) ? argv[1] : DEFAULT_FILE_PATH;
     int rc = run(path);
-    check(fflush(stdout) == 0, "fflush()");
+    check_ret(fflush(stdout) == 0, EXIT_FAILURE, "fflush()");
 
     return rc;
-error:
-    return EXIT_FAILURE;
 }

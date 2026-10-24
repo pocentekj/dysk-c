@@ -12,6 +12,15 @@
 
 #include <klib/kvec.h>
 
+bool starts_with(const string s, const string search) {
+    assert(s && search);
+
+    size_t min_len = strlen(search);
+    if (strlen(s) < min_len) return false;
+
+    return strncmp(s, search, min_len) == 0;
+}
+
 string string_from_file(const string path, size_t *max_size) {
     assert(path);
 

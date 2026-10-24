@@ -1,7 +1,7 @@
 CC := gcc
 BUILDDIR := build
 
-.PHONY: all setup dev clean
+.PHONY: all setup dev check clean
 
 all: dev
 
@@ -13,6 +13,9 @@ setup:
 
 dev: $(BUILDDIR)/build.ninja
 	meson compile -C "$(BUILDDIR)"
+
+check: $(BUILDDIR)/build.ninja
+	meson test -C "$(BUILDDIR)"
 
 clean:
 	rm -rf "$(BUILDDIR)"
