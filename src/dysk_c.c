@@ -15,40 +15,6 @@
 
 #define foreach(A) for (size_t iter = 0; iter < kv_size((A)); iter++)
 
-string human_readable(uint64_t bytes) {
-    static const char *const units[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
-
-    long double value = (long double)bytes;
-    size_t unit = 0;
-    const size_t last_unit = sizeof units / sizeof units[0] - 1;
-
-    while (value >= 1024.0L && unit < last_unit) {
-        value /= 1024.0L;
-        ++unit;
-    }
-
-    /* Avoid displaying a rounded-up "1024.0 KiB" instead of "1.0 MiB". */
-    if (unit < last_unit && value >= 1023.95L) {
-        value /= 1024.0L;
-        ++unit;
-    }
-
-    int needed = unit == 0 ? snprintf(NULL, 0, "%" PRIu64 " %s", bytes, units[unit])
-                           : snprintf(NULL, 0, "%.1Lf %s", value, units[unit]);
-
-    if (needed < 0) return NULL;
-
-    string result = malloc((size_t)needed + 1);
-    if (result == NULL) return NULL;
-
-    if (unit == 0)
-        snprintf(result, (size_t)needed + 1, "%" PRIu64 " %s", bytes, units[unit]);
-    else
-        snprintf(result, (size_t)needed + 1, "%.1Lf %s", value, units[unit]);
-
-    return result;
-}
-
 int run(const prog_ops ops) {
     deferred(string_array_destroy) string_array *lines = string_array_new();
     check_ret(lines, EXIT_FAILURE, "Out of memory");
@@ -56,7 +22,7 @@ int run(const prog_ops ops) {
     check_ret(read_lines(ops.path, lines), EXIT_FAILURE, "Failed to read data");
     debug("%s: %zu lines", ops.path, string_array_len(lines));
 
-    kvec_t(Entry *) entries;
+    EntryTable entries;
     kv_init(entries);
 
     foreach (lines->data) {
@@ -88,16 +54,7 @@ int run(const prog_ops ops) {
     }
 
     debug("%zu entries loaded", kv_size(entries));
-
-    printf("[");
-    foreach (entries) {
-        Entry *e = kv_A(entries, iter);
-        Entry_print_json(e, ops.human_readable);
-        Entry_destroy(&e);
-        if (iter + 1 < kv_size(entries)) printf(",");
-    }
-    kv_destroy(entries);
-    printf("]\n");
+    print_entries(entries, ops.human_readable, ops.display_format);
 
     return EXIT_SUCCESS;
 }
@@ -193,7 +150,7 @@ void Entry_destroy(Entry **e) {
     *e = NULL;
 }
 
-void Entry_print_json(Entry *e, bool hr) {
+void Entry_print_json(const Entry *e, const bool hr) {
     assert(e);
 
     if (hr) {
@@ -209,4 +166,80 @@ void Entry_print_json(Entry *e, bool hr) {
                "\"total\":%" PRIu64 ",\"available\":%" PRIu64 "}",
                e->dev, e->mp, e->fs, e->total, e->avail);
     }
+}
+
+void Entry_print_table(const Entry *e, const bool hr) {
+    (void)e; // unused
+    (void)hr;  // unused
+}
+
+void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
+    switch (fmt) {
+
+        case DSC_DSPL_JSON:
+            printf("[");
+            foreach (entries) {
+                Entry *e = kv_A(entries, iter);
+                Entry_print_json(e, hr);
+                Entry_destroy(&e);
+                if (iter + 1 < kv_size(entries)) printf(",");
+            }
+            printf("]\n");
+            break;
+
+        case DSC_DSPL_TABLE:
+            // clang-format off
+            printf("┌────────────────────────────────┬──────────┬────────────┬─────────────────┬─────────────┐\n");
+            printf("│ Device                         │ Type     │ Total      │ Used            │ Available   │\n");
+            printf("├────────────────────────────────┼──────────┼────────────┼─────────────────┼─────────────┤\n");
+            // clang-format on
+
+            foreach (entries) {
+                Entry *e = kv_A(entries, iter);
+                Entry_print_table(e, hr);
+                Entry_destroy(&e);
+            }
+
+            // clang-format off
+            printf("└────────────────────────────────┴──────────┴────────────┴─────────────────┴─────────────┘\n");
+            // clang-format on
+
+            break;
+    }
+
+    kv_destroy(entries);
+}
+
+string human_readable(uint64_t bytes) {
+    static const char *const units[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+
+    long double value = (long double)bytes;
+    size_t unit = 0;
+    const size_t last_unit = sizeof units / sizeof units[0] - 1;
+
+    while (value >= 1024.0L && unit < last_unit) {
+        value /= 1024.0L;
+        ++unit;
+    }
+
+    /* Avoid displaying a rounded-up "1024.0 KiB" instead of "1.0 MiB". */
+    if (unit < last_unit && value >= 1023.95L) {
+        value /= 1024.0L;
+        ++unit;
+    }
+
+    int needed = unit == 0 ? snprintf(NULL, 0, "%" PRIu64 " %s", bytes, units[unit])
+                           : snprintf(NULL, 0, "%.1Lf %s", value, units[unit]);
+
+    if (needed < 0) return NULL;
+
+    string result = malloc((size_t)needed + 1);
+    if (result == NULL) return NULL;
+
+    if (unit == 0)
+        snprintf(result, (size_t)needed + 1, "%" PRIu64 " %s", bytes, units[unit]);
+    else
+        snprintf(result, (size_t)needed + 1, "%.1Lf %s", value, units[unit]);
+
+    return result;
 }

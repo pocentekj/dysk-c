@@ -1,9 +1,10 @@
 #pragma once
 
 #include "strutil.h"
-
 #include <stdbool.h>
 #include <stdint.h>
+
+#include <klib/kvec.h>
 
 typedef struct {
     string dev;     // device
@@ -13,6 +14,8 @@ typedef struct {
     uint64_t avail; // available space (in bytes)
 } Entry;
 
+typedef kvec_t(Entry *) EntryTable;
+
 typedef enum {
     PARSE_SUCCESS,
     PARSE_IGNORE, // by default, everything not in /dev is ignored
@@ -20,6 +23,11 @@ typedef enum {
     PARSE_ENOMEM, // out of memory
     PARSE_ERRVFS, // statvfs error
 } p_status;
+
+typedef enum {
+    DSC_DSPL_JSON,
+    DSC_DSPL_TABLE,
+} dspl_format;
 
 typedef struct {
     bool ok;
@@ -29,7 +37,13 @@ typedef struct {
 
 parse_result Entry_from_line(const string line);
 void Entry_destroy(Entry **e);
-void Entry_print_json(Entry *e, bool hr);
+void Entry_print_json(const Entry *e, const bool hr);
+void Entry_print_table(const Entry *e, const bool hr);
+
+/**
+ * Print all entries in selected format. This will consume and destroy `entries`.
+ */
+void print_entries(EntryTable entries, const bool hr, const dspl_format fmt);
 
 /**
  * Try to split line into tokens. Returns NULL on failure.
@@ -45,6 +59,7 @@ string human_readable(uint64_t bytes);
 
 typedef struct {
     string path;
+    dspl_format display_format;
     bool human_readable;
 } prog_ops;
 
