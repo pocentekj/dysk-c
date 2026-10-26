@@ -15,12 +15,46 @@
 
 #define foreach(A) for (size_t iter = 0; iter < kv_size((A)); iter++)
 
-int run(const string path) {
+string human_readable(uint64_t bytes) {
+    static const char *const units[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+
+    long double value = (long double)bytes;
+    size_t unit = 0;
+    const size_t last_unit = sizeof units / sizeof units[0] - 1;
+
+    while (value >= 1024.0L && unit < last_unit) {
+        value /= 1024.0L;
+        ++unit;
+    }
+
+    /* Avoid displaying a rounded-up "1024.0 KiB" instead of "1.0 MiB". */
+    if (unit < last_unit && value >= 1023.95L) {
+        value /= 1024.0L;
+        ++unit;
+    }
+
+    int needed = unit == 0 ? snprintf(NULL, 0, "%" PRIu64 " %s", bytes, units[unit])
+                           : snprintf(NULL, 0, "%.1Lf %s", value, units[unit]);
+
+    if (needed < 0) return NULL;
+
+    string result = malloc((size_t)needed + 1);
+    if (result == NULL) return NULL;
+
+    if (unit == 0)
+        snprintf(result, (size_t)needed + 1, "%" PRIu64 " %s", bytes, units[unit]);
+    else
+        snprintf(result, (size_t)needed + 1, "%.1Lf %s", value, units[unit]);
+
+    return result;
+}
+
+int run(const prog_ops ops) {
     deferred(string_array_destroy) string_array *lines = string_array_new();
     check_ret(lines, EXIT_FAILURE, "Out of memory");
 
-    check_ret(read_lines(path, lines), EXIT_FAILURE, "Failed to read data");
-    debug("%s: %zu lines", path, string_array_len(lines));
+    check_ret(read_lines(ops.path, lines), EXIT_FAILURE, "Failed to read data");
+    debug("%s: %zu lines", ops.path, string_array_len(lines));
 
     kvec_t(Entry *) entries;
     kv_init(entries);
@@ -58,7 +92,7 @@ int run(const string path) {
     printf("[");
     foreach (entries) {
         Entry *e = kv_A(entries, iter);
-        Entry_print_json(e);
+        Entry_print_json(e, ops.human_readable);
         Entry_destroy(&e);
         if (iter + 1 < kv_size(entries)) printf(",");
     }
@@ -159,10 +193,20 @@ void Entry_destroy(Entry **e) {
     *e = NULL;
 }
 
-void Entry_print_json(Entry *e) {
+void Entry_print_json(Entry *e, bool hr) {
     assert(e);
 
-    printf("{\"device\":\"%s\",\"mount_point\":\"%s\",\"file_system\":\"%s\","
-           "\"total\":%" PRIu64 ",\"available\":%" PRIu64 "}",
-           e->dev, e->mp, e->fs, e->total, e->avail);
+    if (hr) {
+        deferred(free_string) string s_total = human_readable(e->total);
+        deferred(free_string) string s_avail = human_readable(e->avail);
+        check_nret(s_total && s_avail, "Out of memory");
+
+        printf("{\"device\":\"%s\",\"mount_point\":\"%s\",\"file_system\":\"%s\","
+               "\"total\":\"%s\",\"available\":\"%s\"}",
+               e->dev, e->mp, e->fs, s_total, s_avail);
+    } else {
+        printf("{\"device\":\"%s\",\"mount_point\":\"%s\",\"file_system\":\"%s\","
+               "\"total\":%" PRIu64 ",\"available\":%" PRIu64 "}",
+               e->dev, e->mp, e->fs, e->total, e->avail);
+    }
 }
