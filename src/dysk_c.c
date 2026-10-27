@@ -86,6 +86,77 @@ error:
     return NULL;
 }
 
+void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
+    switch (fmt) {
+
+    case DSC_DSPL_JSON:
+        printf("[");
+        foreach (entries) {
+            Entry *e = kv_A(entries, iter);
+            Entry_print_json(e, hr);
+            Entry_destroy(&e);
+            if (iter + 1 < kv_size(entries)) printf(",");
+        }
+        printf("]\n");
+        break;
+
+    case DSC_DSPL_TABLE:
+        // clang-format off
+            printf("┌────────────────────────────────┬──────────┬────────────┬─────────────────┬─────────────┐\n");
+            printf("│ Device                         │ Type     │ Total      │ Used            │ Available   │\n");
+            printf("├────────────────────────────────┼──────────┼────────────┼─────────────────┼─────────────┤\n");
+        // clang-format on
+
+        foreach (entries) {
+            Entry *e = kv_A(entries, iter);
+            Entry_print_table(e, hr);
+            Entry_destroy(&e);
+        }
+
+        // clang-format off
+            printf("└────────────────────────────────┴──────────┴────────────┴─────────────────┴─────────────┘\n");
+        // clang-format on
+
+        break;
+    }
+
+    kv_destroy(entries);
+}
+
+string human_readable(const uint64_t bytes) {
+    static const char *const units[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+
+    long double value = (long double)bytes;
+    size_t unit = 0;
+    const size_t last_unit = sizeof units / sizeof units[0] - 1;
+
+    while (value >= 1024.0L && unit < last_unit) {
+        value /= 1024.0L;
+        ++unit;
+    }
+
+    // Avoid displaying a rounded-up "1024.0 KiB" instead of "1.0 MiB".
+    if (unit < last_unit && value >= 1023.95L) {
+        value /= 1024.0L;
+        ++unit;
+    }
+
+    int needed = unit == 0 ? snprintf(NULL, 0, "%" PRIu64 " %s", bytes, units[unit])
+                           : snprintf(NULL, 0, "%.1Lf %s", value, units[unit]);
+
+    if (needed < 0) return NULL;
+
+    string result = malloc((size_t)needed + 1);
+    if (result == NULL) return NULL;
+
+    if (unit == 0)
+        snprintf(result, (size_t)needed + 1, "%" PRIu64 " %s", bytes, units[unit]);
+    else
+        snprintf(result, (size_t)needed + 1, "%.1Lf %s", value, units[unit]);
+
+    return result;
+}
+
 parse_result Entry_from_line(const string line) {
     parse_result r = {0};
 
@@ -169,77 +240,15 @@ void Entry_print_json(const Entry *e, const bool hr) {
 }
 
 void Entry_print_table(const Entry *e, const bool hr) {
-    (void)e; // unused
-    (void)hr;  // unused
-}
+    printf("│ %-30s │ %-8s │", e->dev, e->fs);
 
-void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
-    switch (fmt) {
+    if (hr) {
+        deferred(free_string) string s_total = human_readable(e->total);
+        deferred(free_string) string s_avail = human_readable(e->avail);
+        check_nret(s_total && s_avail, "Out of memory");
 
-        case DSC_DSPL_JSON:
-            printf("[");
-            foreach (entries) {
-                Entry *e = kv_A(entries, iter);
-                Entry_print_json(e, hr);
-                Entry_destroy(&e);
-                if (iter + 1 < kv_size(entries)) printf(",");
-            }
-            printf("]\n");
-            break;
-
-        case DSC_DSPL_TABLE:
-            // clang-format off
-            printf("┌────────────────────────────────┬──────────┬────────────┬─────────────────┬─────────────┐\n");
-            printf("│ Device                         │ Type     │ Total      │ Used            │ Available   │\n");
-            printf("├────────────────────────────────┼──────────┼────────────┼─────────────────┼─────────────┤\n");
-            // clang-format on
-
-            foreach (entries) {
-                Entry *e = kv_A(entries, iter);
-                Entry_print_table(e, hr);
-                Entry_destroy(&e);
-            }
-
-            // clang-format off
-            printf("└────────────────────────────────┴──────────┴────────────┴─────────────────┴─────────────┘\n");
-            // clang-format on
-
-            break;
+        printf(" %10s │                 │ %11s │\n", s_total, s_avail);
+    } else {
+        printf(" %10" PRIu64 " │                 │ %11" PRIu64 " │\n", e->total, e->avail);
     }
-
-    kv_destroy(entries);
-}
-
-string human_readable(uint64_t bytes) {
-    static const char *const units[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
-
-    long double value = (long double)bytes;
-    size_t unit = 0;
-    const size_t last_unit = sizeof units / sizeof units[0] - 1;
-
-    while (value >= 1024.0L && unit < last_unit) {
-        value /= 1024.0L;
-        ++unit;
-    }
-
-    /* Avoid displaying a rounded-up "1024.0 KiB" instead of "1.0 MiB". */
-    if (unit < last_unit && value >= 1023.95L) {
-        value /= 1024.0L;
-        ++unit;
-    }
-
-    int needed = unit == 0 ? snprintf(NULL, 0, "%" PRIu64 " %s", bytes, units[unit])
-                           : snprintf(NULL, 0, "%.1Lf %s", value, units[unit]);
-
-    if (needed < 0) return NULL;
-
-    string result = malloc((size_t)needed + 1);
-    if (result == NULL) return NULL;
-
-    if (unit == 0)
-        snprintf(result, (size_t)needed + 1, "%" PRIu64 " %s", bytes, units[unit]);
-    else
-        snprintf(result, (size_t)needed + 1, "%.1Lf %s", value, units[unit]);
-
-    return result;
 }

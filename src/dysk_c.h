@@ -55,7 +55,7 @@ string_array *parse_line(const string line);
  * Returns string with converted value or NULL on failure.
  * Note that caller must free returned string.
  */
-string human_readable(uint64_t bytes);
+string human_readable(const uint64_t bytes);
 
 typedef struct {
     string path;
