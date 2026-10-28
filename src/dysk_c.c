@@ -166,10 +166,10 @@ void print_progress_bar(const double prc) {
     static const int max_cols = 10;
     const int taken = v / max_cols;
 
-    printf("%3d%% " COLOR_RED, v);
+    printf("%3d%% " BG_RED, v);
     for (int i = 0; i < taken; i++)
         putchar(' ');
-    printf(COLOR_GREEN);
+    printf(BG_GREEN);
     for (int i = 0; i < max_cols - taken; i++)
         putchar(' ');
     printf(COLOR_RESET);
@@ -258,7 +258,7 @@ void Entry_print_json(const Entry *e, const bool hr) {
 }
 
 void Entry_print_table(const Entry *e) {
-    const double used_prc = (double)e->avail / (double)e->total * 100.0;
+    const double used_prc = (double)(e->total - e->avail) / (double)e->total * 100.0;
 
     printf("│ %-30s │ %-8s │", e->dev, e->fs);
 
@@ -266,7 +266,7 @@ void Entry_print_table(const Entry *e) {
     deferred(free_string) string s_avail = human_readable(e->avail);
     check_nret(s_total && s_avail, "Out of memory");
 
-    printf(" %10s │ ", s_total);
+    printf(COLOR_YELLOW " %10s " COLOR_RESET "│ ", s_total);
     print_progress_bar(used_prc);
-    printf(" │ %11s │\n", s_avail);
+    printf(" │" COLOR_GREEN " %11s " COLOR_RESET "│\n", s_avail);
 }

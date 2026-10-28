@@ -6,8 +6,10 @@
 
 #include <klib/kvec.h>
 
-#define COLOR_RED "\033[41m"
-#define COLOR_GREEN "\033[42m"
+#define BG_RED "\033[41m"
+#define BG_GREEN "\033[42m"
+#define COLOR_GREEN "\033[32m"
+#define COLOR_YELLOW "\033[33m"
 #define COLOR_RESET "\033[0m"
 
 void print_progress_bar(const double prc);
