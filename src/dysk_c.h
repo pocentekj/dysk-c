@@ -6,6 +6,12 @@
 
 #include <klib/kvec.h>
 
+#define COLOR_RED "\033[41m"
+#define COLOR_GREEN "\033[42m"
+#define COLOR_RESET "\033[0m"
+
+void print_progress_bar(const double prc);
+
 typedef struct {
     string dev;     // device
     string mp;      // mount point
@@ -38,7 +44,7 @@ typedef struct {
 parse_result Entry_from_line(const string line);
 void Entry_destroy(Entry **e);
 void Entry_print_json(const Entry *e, const bool hr);
-void Entry_print_table(const Entry *e, const bool hr);
+void Entry_print_table(const Entry *e);
 
 /**
  * Print all entries in selected format. This will consume and destroy `entries`.

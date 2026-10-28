@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 const string DEFAULT_FILE_PATH = "/proc/mounts";
-const dspl_format DEFAULT_DISPLAY_FORMAT = DSC_DSPL_JSON;
+const dspl_format DEFAULT_DISPLAY_FORMAT = DSC_DSPL_TABLE;
 
 static bool validate_display_format(const string format, dspl_format *out) {
     const string allowed[] = {"json", "table"};
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
             break;
 
         default:
-            fprintf(stderr, "Usage: dsc -[h] [PATH]\n");
+            fprintf(stderr, "Usage: dsc -[h] -[f FORMAT] [PATH]\n");
             break;
         }
     }

@@ -109,7 +109,7 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
 
         foreach (entries) {
             Entry *e = kv_A(entries, iter);
-            Entry_print_table(e, hr);
+            Entry_print_table(e);
             Entry_destroy(&e);
         }
 
@@ -155,6 +155,24 @@ string human_readable(const uint64_t bytes) {
         snprintf(result, (size_t)needed + 1, "%.1Lf %s", value, units[unit]);
 
     return result;
+}
+
+void print_progress_bar(const double prc) {
+    if (prc < 0.0 || prc > 100.0) return;
+
+    int v = (int)prc;
+    if (prc - v >= 0.5) v += 1;
+
+    static const int max_cols = 10;
+    const int taken = v / max_cols;
+
+    printf("%3d%% " COLOR_RED, v);
+    for (int i = 0; i < taken; i++)
+        putchar(' ');
+    printf(COLOR_GREEN);
+    for (int i = 0; i < max_cols - taken; i++)
+        putchar(' ');
+    printf(COLOR_RESET);
 }
 
 parse_result Entry_from_line(const string line) {
@@ -239,16 +257,16 @@ void Entry_print_json(const Entry *e, const bool hr) {
     }
 }
 
-void Entry_print_table(const Entry *e, const bool hr) {
+void Entry_print_table(const Entry *e) {
+    const double used_prc = (double)e->avail / (double)e->total * 100.0;
+
     printf("│ %-30s │ %-8s │", e->dev, e->fs);
 
-    if (hr) {
-        deferred(free_string) string s_total = human_readable(e->total);
-        deferred(free_string) string s_avail = human_readable(e->avail);
-        check_nret(s_total && s_avail, "Out of memory");
+    deferred(free_string) string s_total = human_readable(e->total);
+    deferred(free_string) string s_avail = human_readable(e->avail);
+    check_nret(s_total && s_avail, "Out of memory");
 
-        printf(" %10s │                 │ %11s │\n", s_total, s_avail);
-    } else {
-        printf(" %10" PRIu64 " │                 │ %11" PRIu64 " │\n", e->total, e->avail);
-    }
+    printf(" %10s │ ", s_total);
+    print_progress_bar(used_prc);
+    printf(" │ %11s │\n", s_avail);
 }
