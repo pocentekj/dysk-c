@@ -10,7 +10,6 @@ venv/
 node_modules/
 
 # Auto-generated files
-/build/
 .cache/
 
 # Secrets/Settings
