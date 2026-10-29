@@ -102,9 +102,9 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
 
     case DSC_DSPL_TABLE:
         // clang-format off
-        printf("┌──────────────────┬─────────┬────────┬────────────────┬────────┬──────────────────────┐\n");
-        printf("│ Filesystem       │ Type    │ Size   │ Use            │ Free   │ Mount Point          │\n");
-        printf("├──────────────────┼─────────┼────────┼────────────────┼────────┼──────────────────────┤\n");
+        printf("┌────────────────────┬─────────┬────────┬────────────────┬────────┬─────────────────────────────┐\n");
+        printf("│ Filesystem         │ Type    │ Size   │ Use            │ Free   │ Mount Point                 │\n");
+        printf("├────────────────────┼─────────┼────────┼────────────────┼────────┼─────────────────────────────┤\n");
         // clang-format on
 
         foreach (entries) {
@@ -114,7 +114,7 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
         }
 
         // clang-format off
-        printf("└──────────────────┴─────────┴────────┴────────────────┴────────┴──────────────────────┘\n");
+        printf("└────────────────────┴─────────┴────────┴────────────────┴────────┴─────────────────────────────┘\n");
         // clang-format on
 
         break;
@@ -260,7 +260,7 @@ void Entry_print_json(const Entry *e, const bool hr) {
 void Entry_print_table(const Entry *e) {
     const double used_prc = (double)(e->total - e->avail) / (double)e->total * 100.0;
 
-    printf("│ %-16s │ %-7s │", e->dev, e->fs);
+    printf("│ %-18s │ %-7s │", e->dev, e->fs);
 
     deferred(free_string) string s_total = human_readable(e->total);
     deferred(free_string) string s_avail = human_readable(e->avail);
@@ -268,5 +268,5 @@ void Entry_print_table(const Entry *e) {
 
     printf(COLOR_YELLOW " %6s " COLOR_RESET "│ ", s_total);
     print_progress_bar(used_prc);
-    printf(" │" COLOR_GREEN " %6s " COLOR_RESET "│ %-20s │\n", s_avail, e->mp);
+    printf(" │" COLOR_GREEN " %6s " COLOR_RESET "│ %-27s │\n", s_avail, e->mp);
 }
