@@ -102,9 +102,9 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
 
     case DSC_DSPL_TABLE:
         // clang-format off
-            printf("┌────────────────────────────────┬──────────┬────────────┬─────────────────┬─────────────┐\n");
-            printf("│ Device                         │ Type     │ Total      │ Used            │ Available   │\n");
-            printf("├────────────────────────────────┼──────────┼────────────┼─────────────────┼─────────────┤\n");
+        printf("┌──────────────────┬─────────┬────────┬────────────────┬────────┐\n");
+        printf("│ Filesystem       │ Type    │ Size   │ Use            │ Free   │\n");
+        printf("├──────────────────┼─────────┼────────┼────────────────┼────────┤\n");
         // clang-format on
 
         foreach (entries) {
@@ -114,7 +114,7 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
         }
 
         // clang-format off
-            printf("└────────────────────────────────┴──────────┴────────────┴─────────────────┴─────────────┘\n");
+        printf("└──────────────────┴─────────┴────────┴────────────────┴────────┘\n");
         // clang-format on
 
         break;
@@ -124,25 +124,25 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
 }
 
 string human_readable(const uint64_t bytes) {
-    static const char *const units[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+    static const char *const units[] = {"B", "K", "M", "G", "T", "P", "E"};
 
     long double value = (long double)bytes;
     size_t unit = 0;
     const size_t last_unit = sizeof units / sizeof units[0] - 1;
 
-    while (value >= 1024.0L && unit < last_unit) {
-        value /= 1024.0L;
+    while (value >= 1000.0L && unit < last_unit) {
+        value /= 1000.0L;
         ++unit;
     }
 
-    // Avoid displaying a rounded-up "1024.0 KiB" instead of "1.0 MiB".
-    if (unit < last_unit && value >= 1023.95L) {
-        value /= 1024.0L;
+    // Avoid displaying a rounded-up "1000.0 KiB" instead of "1.0 MiB".
+    if (unit < last_unit && value >= 999.95L) {
+        value /= 1000.0L;
         ++unit;
     }
 
-    int needed = unit == 0 ? snprintf(NULL, 0, "%" PRIu64 " %s", bytes, units[unit])
-                           : snprintf(NULL, 0, "%.1Lf %s", value, units[unit]);
+    int needed = unit == 0 ? snprintf(NULL, 0, "%" PRIu64 "%s", bytes, units[unit])
+                           : snprintf(NULL, 0, "%.1Lf%s", value, units[unit]);
 
     if (needed < 0) return NULL;
 
@@ -150,9 +150,9 @@ string human_readable(const uint64_t bytes) {
     if (result == NULL) return NULL;
 
     if (unit == 0)
-        snprintf(result, (size_t)needed + 1, "%" PRIu64 " %s", bytes, units[unit]);
+        snprintf(result, (size_t)needed + 1, "%" PRIu64 "%s", bytes, units[unit]);
     else
-        snprintf(result, (size_t)needed + 1, "%.1Lf %s", value, units[unit]);
+        snprintf(result, (size_t)needed + 1, "%.1Lf%s", value, units[unit]);
 
     return result;
 }
@@ -166,7 +166,7 @@ void print_progress_bar(const double prc) {
     static const int max_cols = 10;
     const int taken = v / max_cols;
 
-    printf("%3d%% " BG_RED, v);
+    printf("%2d%% " BG_RED, v);
     for (int i = 0; i < taken; i++)
         putchar(' ');
     printf(BG_GREEN);
@@ -212,7 +212,7 @@ parse_result Entry_from_line(const string line) {
     }
 
     e->total = (uint64_t)vfs.f_blocks * (uint64_t)vfs.f_frsize;
-    e->avail = (uint64_t)vfs.f_bfree * (uint64_t)vfs.f_frsize;
+    e->avail = (uint64_t)vfs.f_bavail * (uint64_t)vfs.f_frsize;
 
     r.entry = e;
     r.status = PARSE_SUCCESS;
@@ -260,13 +260,13 @@ void Entry_print_json(const Entry *e, const bool hr) {
 void Entry_print_table(const Entry *e) {
     const double used_prc = (double)(e->total - e->avail) / (double)e->total * 100.0;
 
-    printf("│ %-30s │ %-8s │", e->dev, e->fs);
+    printf("│ %-16s │ %-7s │", e->dev, e->fs);
 
     deferred(free_string) string s_total = human_readable(e->total);
     deferred(free_string) string s_avail = human_readable(e->avail);
     check_nret(s_total && s_avail, "Out of memory");
 
-    printf(COLOR_YELLOW " %10s " COLOR_RESET "│ ", s_total);
+    printf(COLOR_YELLOW " %6s " COLOR_RESET "│ ", s_total);
     print_progress_bar(used_prc);
-    printf(" │" COLOR_GREEN " %11s " COLOR_RESET "│\n", s_avail);
+    printf(" │" COLOR_GREEN " %6s " COLOR_RESET "│\n", s_avail);
 }
