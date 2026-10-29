@@ -8,6 +8,15 @@ Disk usage info for Linux, implemented in C. This started as a simple learning p
 
 This is mainly a learning project, so there’s no AI-generated code in this repository. I made it simply because I wanted to learn more about C programming and the Linux environment.
 
+## Build
+
+Check `Makefile` for development commands. For optimized build, run:
+
+```
+meson setup -Dbuildtype=release -Db_ndebug=true release
+meson compile -C release
+```
+
 ## Contributing
 
 I’m not accepting contributions to this project, so please don’t open pull requests. If you have any pointers or suggestions, feel free to leave a comment or open an issue - I’d really appreciate you taking the time to share your knowledge.
