@@ -59,6 +59,11 @@ typedef struct {
     text_align align;
 } Column;
 
+static inline size_t minsize(const Column *col, const string s) {
+    size_t sw = string_width(s);
+    return sw > col->width ? sw : col->width;
+}
+
 /**
  * Print all entries in selected format. This will consume and destroy `entries`.
  */

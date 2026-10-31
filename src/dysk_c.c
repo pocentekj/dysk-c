@@ -161,15 +161,22 @@ void print_column_header(Column *col) {
 
 void print_table(EntryTable entries) {
     Column cols[] = {
-        (Column){.name = "Filesystem", .width = 18, .align = TEXT_LEFT},
+        (Column){.name = "Filesystem", .width = 10, .align = TEXT_LEFT},
         (Column){.name = "Type", .width = 7, .align = TEXT_CENTER},
         (Column){.name = "Size", .width = 6, .align = TEXT_CENTER},
         (Column){.name = "Use", .width = 14, .align = TEXT_CENTER},
         (Column){.name = "Free", .width = 6, .align = TEXT_CENTER},
-        (Column){.name = "Mount Point", .width = 21, .align = TEXT_LEFT},
+        (Column){.name = "Mount Point", .width = 11, .align = TEXT_LEFT},
     };
 
     const size_t cols_len = sizeof(cols) / sizeof(cols[0]);
+
+    foreach (entries) {
+        Entry *e = kv_A(entries, iter);
+        cols[0].width = minsize(&cols[0], e->dev);
+        cols[1].width = minsize(&cols[1], e->fs);
+        cols[5].width = minsize(&cols[5], e->mp);
+    }
 
     for (size_t i = 0; i < cols_len; i++) {
         printf(COLOR_GRAY "%s", (i == 0) ? "┌" : "┬");
@@ -193,10 +200,12 @@ void print_table(EntryTable entries) {
 
     foreach (entries) {
         Entry *e = kv_A(entries, iter);
+
         deferred(free_string) string s_total = human_readable(e->total);
         deferred(free_string) string s_avail = human_readable(e->avail);
-        deferred(free_string) string fs_type = NULL;
+        check_nret(s_total && s_avail, "Out of memory");
 
+        deferred(free_string) string fs_type = NULL;
         check_nret(center_txt(e->fs, cols[1].width, &fs_type) > 0, "center_txt()");
 
         printf("%s%s%*s", SEP, e->dev, cols[0].width - (int)string_width(e->dev), "");
