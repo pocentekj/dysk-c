@@ -15,6 +15,8 @@
 
 #define foreach(A) for (size_t iter = 0; iter < kv_size((A)); iter++)
 
+static const string SEP = COLOR_GRAY "│" COLOR_RESET;
+
 int run(const prog_ops ops) {
     deferred(string_array_destroy) string_array *lines = string_array_new();
     check_ret(lines, EXIT_FAILURE, "Out of memory");
@@ -98,29 +100,13 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
             if (iter + 1 < kv_size(entries)) printf(",");
         }
         printf("]\n");
+        kv_destroy(entries);
         break;
 
     case DSC_DSPL_TABLE:
-        // clang-format off
-        printf("┌────────────────────┬─────────┬────────┬────────────────┬────────┬─────────────────────────────┐\n");
-        printf("│ Filesystem         │ Type    │ Size   │ Use            │ Free   │ Mount Point                 │\n");
-        printf("├────────────────────┼─────────┼────────┼────────────────┼────────┼─────────────────────────────┤\n");
-        // clang-format on
-
-        foreach (entries) {
-            Entry *e = kv_A(entries, iter);
-            Entry_print_table(e);
-            Entry_destroy(&e);
-        }
-
-        // clang-format off
-        printf("└────────────────────┴─────────┴────────┴────────────────┴────────┴─────────────────────────────┘\n");
-        // clang-format on
-
+        print_table(entries);
         break;
     }
-
-    kv_destroy(entries);
 }
 
 string human_readable(const uint64_t bytes) {
@@ -155,6 +141,92 @@ string human_readable(const uint64_t bytes) {
         snprintf(result, (size_t)needed + 1, "%.1Lf%s", value, units[unit]);
 
     return result;
+}
+
+void print_column_header(Column *col) {
+    if (col->align == TEXT_LEFT) {
+        int remain = col->width - string_width(col->name);
+        printf("%s%*s", col->name, remain, "");
+    } else {
+        string title = NULL;
+        if (center_txt(col->name, (size_t)col->width, &title) == -1) {
+            fprintf(stderr, "ERROR: center_text()\n");
+            exit(EXIT_FAILURE);
+        }
+        printf("%s", title);
+        free_string(&title);
+    }
+}
+
+void print_table(EntryTable entries) {
+    Column cols[] = {
+        (Column){.name = "Filesystem", .width = 10, .align = TEXT_LEFT},
+        (Column){.name = "Type", .width = 7, .align = TEXT_CENTER},
+        (Column){.name = "Use", .width = 14, .align = TEXT_CENTER},
+        (Column){.name = "Free", .width = 6, .align = TEXT_CENTER},
+        (Column){.name = "Size", .width = 6, .align = TEXT_CENTER},
+        (Column){.name = "Mount Point", .width = 11, .align = TEXT_LEFT},
+    };
+
+    const size_t cols_len = sizeof(cols) / sizeof(cols[0]);
+
+    foreach (entries) {
+        Entry *e = kv_A(entries, iter);
+        cols[0].width = minsize(&cols[0], e->dev);
+        cols[1].width = minsize(&cols[1], e->fs);
+        cols[5].width = minsize(&cols[5], e->mp);
+    }
+
+    for (size_t i = 0; i < cols_len; i++) {
+        printf(COLOR_GRAY "%s", (i == 0) ? "┌" : "┬");
+        for (size_t j = 0; j < cols[i].width; j++)
+            printf("─");
+        if (i + 1 == cols_len) printf("┐" COLOR_RESET "\n");
+    }
+
+    for (size_t i = 0; i < cols_len; i++) {
+        printf(COLOR_GRAY "│" COLOR_RESET);
+        print_column_header(&cols[i]);
+        if (i + 1 == cols_len) printf(COLOR_GRAY "│" COLOR_RESET "\n");
+    }
+
+    for (size_t i = 0; i < cols_len; i++) {
+        printf(COLOR_GRAY "%s", (i == 0) ? "├" : "┼");
+        for (size_t j = 0; j < cols[i].width; j++)
+            printf("─");
+        if (i + 1 == cols_len) printf("┤" COLOR_RESET "\n");
+    }
+
+    foreach (entries) {
+        Entry *e = kv_A(entries, iter);
+
+        deferred(free_string) string s_total = human_readable(e->total);
+        deferred(free_string) string s_avail = human_readable(e->avail);
+        check_nret(s_total && s_avail, "Out of memory");
+
+        deferred(free_string) string fs_type = NULL;
+        check_nret(center_txt(e->fs, cols[1].width, &fs_type) > 0, "center_txt()");
+
+        printf("%s%s%*s", SEP, e->dev, cols[0].width - (int)string_width(e->dev), "");
+        printf("%s%s%s", SEP, fs_type, SEP);
+        print_progress_bar((double)(e->total - e->avail) / (double)e->total * 100.0);
+        printf("%s%*s" COLOR_GREEN "%s" COLOR_RESET, SEP,
+               cols[3].width - (int)string_width(s_avail), "", s_avail);
+        printf("%s%*s" COLOR_YELLOW "%s" COLOR_RESET, SEP,
+               cols[4].width - (int)string_width(s_total), "", s_total);
+        printf("%s%s%*s%s\n", SEP, e->mp, cols[5].width - (int)string_width(e->mp), "", SEP);
+
+        Entry_destroy(&e);
+    }
+
+    for (size_t i = 0; i < cols_len; i++) {
+        printf(COLOR_GRAY "%s", (i == 0) ? "└" : "┴");
+        for (size_t j = 0; j < cols[i].width; j++)
+            printf("─");
+        if (i + 1 == cols_len) printf("┘" COLOR_RESET "\n");
+    }
+
+    kv_destroy(entries);
 }
 
 void print_progress_bar(const double prc) {
@@ -255,18 +327,4 @@ void Entry_print_json(const Entry *e, const bool hr) {
                "\"total\":%" PRIu64 ",\"available\":%" PRIu64 "}",
                e->dev, e->mp, e->fs, e->total, e->avail);
     }
-}
-
-void Entry_print_table(const Entry *e) {
-    const double used_prc = (double)(e->total - e->avail) / (double)e->total * 100.0;
-
-    printf("│ %-18s │ %-7s │", e->dev, e->fs);
-
-    deferred(free_string) string s_total = human_readable(e->total);
-    deferred(free_string) string s_avail = human_readable(e->avail);
-    check_nret(s_total && s_avail, "Out of memory");
-
-    printf(COLOR_YELLOW " %6s " COLOR_RESET "│ ", s_total);
-    print_progress_bar(used_prc);
-    printf(" │" COLOR_GREEN " %6s " COLOR_RESET "│ %-27s │\n", s_avail, e->mp);
 }

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <uniwidth.h>
 
 #include <klib/kvec.h>
 
@@ -22,6 +23,12 @@ static inline void free_string(string *s) {
  * Check if `s` starts with `search`.
  */
 bool starts_with(const string s, const string search);
+
+static inline size_t string_width(const string s) {
+    return u8_strwidth((const uint8_t *)s, "UTF-8");
+}
+
+int center_txt(const string s, size_t w, string *out);
 
 /**
  * Read entire file on `path` into string.

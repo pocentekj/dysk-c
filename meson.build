@@ -5,12 +5,18 @@ project('dysk-c', 'c',
   ],
 )
 
+cc = meson.get_compiler('c')
+
+dep_unistring = cc.find_library('unistring')
+dep_check = dependency('check')
+
 executable('dsc',
   sources: [
     'src/main.c',
     'src/dysk_c.c',
     'src/strutil.c',
   ],
+  dependencies: dep_unistring,
 )
 
 tests = executable('tests',
@@ -19,7 +25,7 @@ tests = executable('tests',
     'src/dysk_c.c',
     'src/strutil.c',
   ],
-  dependencies: dependency('check'),
+  dependencies: [dep_unistring, dep_check],
 )
 
 test('tests', tests)
