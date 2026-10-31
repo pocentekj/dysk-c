@@ -143,7 +143,7 @@ string human_readable(const uint64_t bytes) {
     return result;
 }
 
-void print_column_header(Column *col) {
+void print_column_header(const Column *col) {
     if (col->align == TEXT_LEFT) {
         int remain = col->width - string_width(col->name);
         printf("%s%*s", col->name, remain, "");

@@ -74,7 +74,7 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt);
  */
 void print_table(EntryTable entries);
 
-void print_column_header(Column *col);
+void print_column_header(const Column *col);
 
 /**
  * Try to split line into tokens. Returns NULL on failure.
