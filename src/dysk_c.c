@@ -100,14 +100,13 @@ void print_entries(EntryTable entries, const bool hr, const dspl_format fmt) {
             if (iter + 1 < kv_size(entries)) printf(",");
         }
         printf("]\n");
+        kv_destroy(entries);
         break;
 
     case DSC_DSPL_TABLE:
         print_table(entries);
         break;
     }
-
-    kv_destroy(entries);
 }
 
 string human_readable(const uint64_t bytes) {
@@ -163,9 +162,9 @@ void print_table(EntryTable entries) {
     Column cols[] = {
         (Column){.name = "Filesystem", .width = 10, .align = TEXT_LEFT},
         (Column){.name = "Type", .width = 7, .align = TEXT_CENTER},
-        (Column){.name = "Size", .width = 6, .align = TEXT_CENTER},
         (Column){.name = "Use", .width = 14, .align = TEXT_CENTER},
         (Column){.name = "Free", .width = 6, .align = TEXT_CENTER},
+        (Column){.name = "Size", .width = 6, .align = TEXT_CENTER},
         (Column){.name = "Mount Point", .width = 11, .align = TEXT_LEFT},
     };
 
@@ -209,14 +208,14 @@ void print_table(EntryTable entries) {
         check_nret(center_txt(e->fs, cols[1].width, &fs_type) > 0, "center_txt()");
 
         printf("%s%s%*s", SEP, e->dev, cols[0].width - (int)string_width(e->dev), "");
-        printf("%s%s", SEP, fs_type);
-        printf("%s%*s" COLOR_YELLOW "%s" COLOR_RESET, SEP,
-               cols[2].width - (int)string_width(s_total), "", s_total);
-        printf("%s", SEP);
+        printf("%s%s%s", SEP, fs_type, SEP);
         print_progress_bar((double)(e->total - e->avail) / (double)e->total * 100.0);
         printf("%s%*s" COLOR_GREEN "%s" COLOR_RESET, SEP,
-               cols[4].width - (int)string_width(s_avail), "", s_avail);
+               cols[3].width - (int)string_width(s_avail), "", s_avail);
+        printf("%s%*s" COLOR_YELLOW "%s" COLOR_RESET, SEP,
+               cols[4].width - (int)string_width(s_total), "", s_total);
         printf("%s%s%*s%s\n", SEP, e->mp, cols[5].width - (int)string_width(e->mp), "", SEP);
+
         Entry_destroy(&e);
     }
 
@@ -226,6 +225,8 @@ void print_table(EntryTable entries) {
             printf("─");
         if (i + 1 == cols_len) printf("┘" COLOR_RESET "\n");
     }
+
+    kv_destroy(entries);
 }
 
 void print_progress_bar(const double prc) {

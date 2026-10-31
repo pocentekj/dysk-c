@@ -69,8 +69,12 @@ static inline size_t minsize(const Column *col, const string s) {
  */
 void print_entries(EntryTable entries, const bool hr, const dspl_format fmt);
 
-void print_column_header(Column *col);
+/**
+ * Print data in table. This will consume and destroy `entries`.
+ */
 void print_table(EntryTable entries);
+
+void print_column_header(Column *col);
 
 /**
  * Try to split line into tokens. Returns NULL on failure.
