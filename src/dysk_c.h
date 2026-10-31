@@ -9,7 +9,7 @@
 #define BG_RED "\033[41m"
 #define BG_GREEN "\033[42m"
 #define COLOR_GREEN "\033[32m"
-#define COLOR_GREY "\033[38;2;130;130;130m"
+#define COLOR_GRAY "\033[38;2;130;130;130m"
 #define COLOR_YELLOW "\033[33m"
 #define COLOR_RESET "\033[0m"
 
@@ -47,12 +47,25 @@ typedef struct {
 parse_result Entry_from_line(const string line);
 void Entry_destroy(Entry **e);
 void Entry_print_json(const Entry *e, const bool hr);
-void Entry_print_table(const Entry *e);
+
+typedef enum {
+    TEXT_LEFT,
+    TEXT_CENTER,
+} text_align;
+
+typedef struct {
+    string name;
+    unsigned short int width;
+    text_align align;
+} Column;
 
 /**
  * Print all entries in selected format. This will consume and destroy `entries`.
  */
 void print_entries(EntryTable entries, const bool hr, const dspl_format fmt);
+
+void print_column_header(Column *col);
+void print_table(EntryTable entries);
 
 /**
  * Try to split line into tokens. Returns NULL on failure.

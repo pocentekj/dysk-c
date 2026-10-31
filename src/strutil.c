@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -19,6 +20,20 @@ bool starts_with(const string s, const string search) {
     if (strlen(s) < min_len) return false;
 
     return strncmp(s, search, min_len) == 0;
+}
+
+int center_txt(const string s, size_t w, string *out) {
+    assert(s);
+    assert(out);
+
+    if (!s || !out || w > INT_MAX) return -1;
+    *out = NULL;
+    size_t sw = string_width(s);
+    if (sw > w) return -1;
+    int l = (w - sw) / 2;
+    int r = w - l - sw;
+
+    return asprintf(out, "%*s%s%*s", l, "", s, r, "");
 }
 
 string string_from_file(const string path, size_t *max_size) {
